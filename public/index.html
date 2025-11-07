@@ -63,6 +63,45 @@
         id="id"
       />
 
+      <!-- Hidden fields to store image data -->
+      <input
+        type="hidden"
+        name="imageUrl"
+        id="imageUrl"
+      />
+      <input
+        type="hidden"
+        name="imagePath"
+        id="imagePath"
+      />
+
+      <!-- Image upload section -->
+      <fieldset>
+        <legend>Cat Photo</legend>
+        <div id="uploadArea">
+          <img
+            id="imagePreview"
+            src="assets/photo.svg"
+            alt="Image preview"
+          />
+          <input
+            type="file"
+            id="fileInput"
+            accept="image/*"
+            style="display:none"
+          />
+          <button
+            type="button"
+            onclick="fileInput.click()"
+          >Browse</button>
+          <p>or drag and drop an image here</p>
+        </div>
+        <div
+          id="noticeArea"
+          style="display:none"
+        ></div>
+      </fieldset>
+
       <fieldset>
         <label for="name">Cat Name</label>
         <input
@@ -306,6 +345,8 @@
     src="script.js"
     type="module"
   ></script>
+
+  <script src="upload.js"></script>
 
 </body>
 

@@ -114,6 +114,14 @@ const editItem = (data) => {
         }
     })
 
+    // Update image preview if image exists
+    const imagePreview = document.querySelector('#imagePreview')
+    if (data.imageUrl) {
+        imagePreview.setAttribute('src', data.imageUrl)
+    } else {
+        imagePreview.setAttribute('src', 'assets/photo.svg')
+    }
+
     // Update the heading to indicate edit mode
     formHeading.textContent = '🐈 Edit Cat'
 
@@ -170,7 +178,13 @@ const renderItem = (item) => {
     div.classList.add('item-card')
     div.setAttribute('data-id', item.id)
 
-    const template = /*html*/`  
+    // Add image display if available
+    const imageHTML = item.imageUrl
+        ? `<img src="${item.imageUrl}" alt="${item.name}" class="cat-image" />`
+        : ''
+
+    const template = /*html*/`
+    ${imageHTML}
     <div class="item-heading">
         <h3> ${item.name} </h3>
         <div class="microchip-info">
@@ -272,10 +286,19 @@ const getData = async () => {
 }
 
 // Revert to the default form title on reset
-myForm.addEventListener('reset', () => formHeading.textContent = '🐈 Share a Cat')
+myForm.addEventListener('reset', () => {
+    formHeading.textContent = '🐈 Share a Cat'
+    // Reset image preview
+    const imagePreview = document.querySelector('#imagePreview')
+    if (imagePreview) {
+        imagePreview.setAttribute('src', 'assets/photo.svg')
+    }
+})
 
 // Reset the form when the create button is clicked. 
-createButton.addEventListener('click', myForm.reset())
+createButton.addEventListener('click', () => {
+    myForm.reset()
+})
 
 // Load initial data
 getData()

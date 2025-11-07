@@ -27,4 +27,6 @@ model cats {
   microchip      Int?
   isAdopted      Boolean?
   food           String?
+  imageUrl       String?
+  imagePath      String?
 }

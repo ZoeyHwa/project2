@@ -17,6 +17,10 @@ app.use(express.json())
 import apiRoutes from './routes/api.js'
 app.use('/', apiRoutes)
 
+// Import and mount upload routes
+import uploadRoutes from './routes/upload.js'
+app.use('/api', uploadRoutes)
+
 
 const port = 3001
 app.listen(port, () => {

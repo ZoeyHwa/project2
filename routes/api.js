@@ -12,6 +12,9 @@ const model = 'cats'
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
+// Import del function from Vercel Blob for image cleanup
+import { del } from '@vercel/blob'
+
 // Connect to the database
 prisma.$connect().then(() => {
     console.log('Prisma connected to MongoDB')
@@ -110,9 +113,27 @@ router.put('/data/:id', async (req, res) => {
 // This is the 'D' of CRUD
 router.delete('/data/:id', async (req, res) => {
     try {
+        // Get the cat record first to get the image URL
+        const cat = await prisma[model].findUnique({
+            where: { id: req.params.id }
+        })
+
+        // Delete from database
         const result = await prisma[model].delete({
             where: { id: req.params.id }
         })
+
+        // Delete associated image from Vercel Blob (if exists)
+        if (cat?.imageUrl) {
+            try {
+                await del(cat.imageUrl)
+                console.log('Deleted image:', cat.imageUrl)
+            } catch (blobError) {
+                console.error('Failed to delete image:', blobError)
+                // Don't fail the whole operation if image delete fails
+            }
+        }
+
         res.send(result)
     } catch (err) {
         console.error('DELETE /data/:id error:', err)
