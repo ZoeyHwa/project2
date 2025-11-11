@@ -141,8 +141,8 @@ const editItem = (data) => {
     }
 
     // Update remove button visibility (requires upload.js to be loaded)
-    if (typeof updateRemoveButtonVisibility === 'function') {
-        updateRemoveButtonVisibility()
+    if (typeof updateButtonVisibility === 'function') {
+        updateButtonVisibility()
     }
 
     // Update the heading to indicate edit mode
@@ -324,8 +324,8 @@ myForm.addEventListener('reset', () => {
         imagePreview.setAttribute('src', 'assets/photo.svg')
     }
     // Update remove button visibility
-    if (typeof updateRemoveButtonVisibility === 'function') {
-        updateRemoveButtonVisibility()
+    if (typeof updateButtonVisibility === 'function') {
+        updateButtonVisibility()
     }
 })
 

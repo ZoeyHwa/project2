@@ -11,8 +11,8 @@ const uploadInstructions = document.querySelector('#uploadInstructions')
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-// Show or hide the remove button based on whether an image is uploaded
-const updateRemoveButtonVisibility = () => {
+// Show or hide the Browse / Replace button based on whether an image is uploaded
+const updateButtonVisibility = () => {
     const imageUrl = myForm.elements['imageUrl'].value
     const hasImage = imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')
 
@@ -67,7 +67,7 @@ const removeImage = async () => {
     noticeArea.style.display = 'none'
 
     // Update button visibility
-    updateRemoveButtonVisibility()
+    updateButtonVisibility()
 }
 
 // Upload a file to the server
@@ -129,7 +129,7 @@ const upload = async (theFile) => {
         myForm.elements['imageUrl'].value = uploadDetails.url
 
         // Update button visibility
-        updateRemoveButtonVisibility()
+        updateButtonVisibility()
 
     } catch (err) {
         console.error('Upload error:', err)
@@ -191,8 +191,8 @@ if (window.matchMedia('(pointer: fine)').matches) {
     }
 }
 
-// Make updateRemoveButtonVisibility available globally
-window.updateRemoveButtonVisibility = updateRemoveButtonVisibility
+// Make updateButtonVisibility available globally
+window.updateButtonVisibility = updateButtonVisibility
 
 // Initialize button visibility on page load
-updateRemoveButtonVisibility()
+updateButtonVisibility()
