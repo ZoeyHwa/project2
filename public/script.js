@@ -140,6 +140,11 @@ const editItem = (data) => {
         imagePreview.setAttribute('src', 'assets/photo.svg')
     }
 
+    // Update remove button visibility (requires upload.js to be loaded)
+    if (typeof updateRemoveButtonVisibility === 'function') {
+        updateRemoveButtonVisibility()
+    }
+
     // Update the heading to indicate edit mode
     formHeading.textContent = '🐈 Edit Cat'
 
@@ -317,6 +322,10 @@ myForm.addEventListener('reset', () => {
     const imagePreview = document.querySelector('#imagePreview')
     if (imagePreview) {
         imagePreview.setAttribute('src', 'assets/photo.svg')
+    }
+    // Update remove button visibility
+    if (typeof updateRemoveButtonVisibility === 'function') {
+        updateRemoveButtonVisibility()
     }
 })
 

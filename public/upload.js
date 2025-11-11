@@ -5,8 +5,70 @@ const fileInput = document.querySelector('#fileInput')
 const uploadArea = document.querySelector('#uploadArea')
 const noticeArea = document.querySelector('#noticeArea')
 const myForm = document.querySelector('#myForm')
+const removeImageButton = document.querySelector('#removeImageButton')
+const browseButton = document.querySelector('#browseButton')
+const uploadInstructions = document.querySelector('#uploadInstructions')
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
+// Show or hide the remove button based on whether an image is uploaded
+const updateRemoveButtonVisibility = () => {
+    const imageUrl = myForm.elements['imageUrl'].value
+    const hasImage = imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')
+
+    if (hasImage) {
+        removeImageButton.style.display = 'block'
+        browseButton.textContent = 'Replace'
+        uploadInstructions.style.display = 'none'
+    } else {
+        removeImageButton.style.display = 'none'
+        browseButton.textContent = 'Browse'
+        uploadInstructions.style.display = 'block'
+    }
+}
+
+// Remove the uploaded image
+const removeImage = async () => {
+    const imageUrl = myForm.elements['imageUrl'].value
+
+    // If there's a valid image URL, delete it from Vercel Blob
+    if (imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')) {
+        try {
+            const response = await fetch('/api/image', {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: imageUrl })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                console.error('Delete error:', errorData)
+                noticeArea.style.display = 'block'
+                noticeArea.textContent = errorData.error || 'Failed to delete image'
+                return
+            }
+
+            console.log('Image deleted successfully')
+        } catch (err) {
+            console.error('Delete error:', err)
+            noticeArea.style.display = 'block'
+            noticeArea.textContent = 'An error occurred while deleting the image'
+            return
+        }
+    }
+
+    // Reset the form field and preview
+    myForm.elements['imageUrl'].value = ''
+    imagePreview.setAttribute('src', 'assets/photo.svg')
+    fileInput.value = ''
+    noticeArea.style.display = 'none'
+
+    // Update button visibility
+    updateRemoveButtonVisibility()
+}
 
 // Upload a file to the server
 const upload = async (theFile) => {
@@ -27,15 +89,27 @@ const upload = async (theFile) => {
     imagePreview.setAttribute('src', 'assets/load.svg')
     noticeArea.style.display = 'none'
 
-    // Prepare upload
+    // Prepare upload 
+    // i.e. construct a "multipart/form-data" request 
+    // NOTE:  "multipart" implies that the request body may contain
+    // both ordinary data and binary file data (e.g. images)
+    // See also: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects#sending_files_using_a_formdata_object
+
     const formData = new FormData()
     formData.append('image', theFile)
 
     try {
+
+        // Note: when the fetch reques body includes form data as below,
+        // the browser will automatically add the correct
+        // "Content-Type: multipart/form-data" header 
+        // so that the server knows how to parse it 
+
         const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData
         })
+
 
         if (!response.ok) {
             const errorData = await response.json()
@@ -54,6 +128,8 @@ const upload = async (theFile) => {
         // Store URL in hidden form field
         myForm.elements['imageUrl'].value = uploadDetails.url
 
+        // Update button visibility
+        updateRemoveButtonVisibility()
 
     } catch (err) {
         console.error('Upload error:', err)
@@ -63,14 +139,30 @@ const upload = async (theFile) => {
     }
 }
 
+// Remove Image Button Click Handler
+removeImageButton.addEventListener('click', (event) => {
+    event.stopPropagation() // Prevent triggering the uploadArea click
+    removeImage()
+})
+
 // BROWSE BUTTON
+browseButton.addEventListener('click', (event) => {
+    event.stopPropagation() // Prevent triggering the uploadArea click
+    fileInput.click()
+})
+
+// FILE INPUT CHANGE
 fileInput.addEventListener('change', (event) => {
     const file = event.currentTarget.files[0]
     if (file) upload(file)
 })
-// CLICK ANYWHERE ON UPLOAD AREA
+
+// CLICK ANYWHERE ON UPLOAD AREA (only when no image is uploaded)
 uploadArea.addEventListener('click', (event) => {
-    fileInput.click()
+    // Only trigger file input if clicking the upload area itself, not buttons
+    if (event.target === uploadArea || event.target === imagePreview) {
+        fileInput.click()
+    }
 })
 
 // DRAG AND DROP (for devices with fine pointer control)
@@ -98,3 +190,9 @@ if (window.matchMedia('(pointer: fine)').matches) {
         uploadArea.addEventListener(eventName, handler)
     }
 }
+
+// Make updateRemoveButtonVisibility available globally
+window.updateRemoveButtonVisibility = updateRemoveButtonVisibility
+
+// Initialize button visibility on page load
+updateRemoveButtonVisibility()

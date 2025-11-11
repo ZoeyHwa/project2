@@ -1,5 +1,5 @@
 // upload.js
-// This file defines an API endpoint for image uploads
+// This file defines API endpoints for managing image uploads
 // it includes image resizing and it stores files using Vercel Blob
 // On Vercel, enable Blob storage for your project
 // Vercel will generate a BLOB_READ_WRITE_TOKEN

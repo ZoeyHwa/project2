@@ -1,14 +1,16 @@
 # Uploading Images
 
-## Processing Files and Storing in Blob Storage
-
-Building on [prior explorations with CRUD](https://github.com/ixd-system-design/Managing-Data), this demo adds functionality for photo uploads. Uploaded image files are resized to fit a defined size, and then stored using [Vercel Blob Storage](https://vercel.com/docs/vercel-blob). This results in a URL which we store in MongoDB as an ordinary string. 
+## Processing and Storing Files in the Cloud
+Building on [prior explorations with CRUD](https://github.com/ixd-system-design/Managing-Data), this demo adds functionality for photo uploads. Uploaded image files are resized to fit a defined size, and then stored using [Vercel Blob Storage](https://vercel.com/docs/vercel-blob). This results in a public URL which in turn is saved to MongoDB as an ordinary string. 
 
 ## User Interface
-The default UI for uploads has been hidden; we use a custom UI inside the input label instead. Drag-and-drop has been implemented, but only where this feature makes sense (A pointer media query prevents it on mobile). 
+The [default UI](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/file) for uploads (i.e. `<input type="file">`) has been hidden; instead we add a custom UI via input label. Drag-and-drop has been implemented, but only where this feature makes sense. We use [matchMedia](https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia) with a `pointer: fine` media query to ensure the user has a mouse (i.e. NOT a tablet or phone)
 
-## Libraries
-On the backend, the [BusBoy](https://www.npmjs.com/package/busboy) library handles file uploads efficiently. We also use the [Sharp](https://sharp.pixelplumbing.com/) library to scale images to a predictable and performant size.
+## BusBoy - Upload Processing Library
+On the backend, the [BusBoy](https://www.npmjs.com/package/busboy) library handles file uploads by parsing the relevant headers that the frontend creates. 
+
+## Sharp - Image Resizing Library
+We use the [Sharp](https://sharp.pixelplumbing.com/) JavaScript library to scale down images to a predictable and performant size. This helps to prevent abuse of the system. 
 
 ## Setup Blob Storage 
 Prior to local development, deploy your project to Vercel, and setup Blob storage. When deploying to vercel, add an environment variable `DATABASE_URL` containing your MongoDB connection string. After the first deployment, setup the Blob Storage and redeploy.
