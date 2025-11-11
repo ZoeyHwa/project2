@@ -36,8 +36,8 @@
 
 <body>
   <header>
-    <h1>Managing Data</h1>
-    <h4>CRUD: a full data lifecycle</h4>
+    <h1>Image Uploads</h1>
+    <h4>CRUD + <a href="https://vercel.com/docs/vercel-blob">blob storage</a> = 💖</h4>
   </header>
   <section id="status">
     <p id="readyStatus">✅ MongoDB is Ready</p>
@@ -307,42 +307,35 @@
 
   <section id="intro">
     <h3>About</h3>
-    <p>Previously we explored approaches to <a
-        href="https://github.com/ixd-system-design/API-Endpoints-for-Publishing-and-Searching"
-      >Publishing Data</a> and <a href="https://github.com/ixd-system-design/Collecting-Data">Collecting Data</a> by
-      means of API Endpoints (backend) and HTML forms (frontend). Having thus addressed the first two letters of
-      <a href="https://developer.mozilla.org/en-US/docs/Glossary/CRUD">CRUD</a> ("Create" and Read"), let's now
-      implement the last two letters as well ("Update" and "Delete"). This will
-      allow us to manage the full lifecycle of data records in our database.
+    <p>Building on <a href="https://github.com/ixd-system-design/Managing-Data">prior explorations with CRUD</a>,
+      this demo adds functionality for photo uploads. This application demonstrates how to handle image uploads,
+      process them on the server, and store them in the cloud using <a href="https://vercel.com/docs/vercel-blob">Vercel
+        Blob Storage</a>.
     </p>
-    <p>In order to operate on existing documents, we need to identify them by ID. The following two endpoints will
-      assume that we pass along the ID of the item to be updated or deleted:
+    <p>The upload workflow involves several key technologies working together:
     <ol>
-      <li>An Express endpoint listens for HTTP <a
-          href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PUT"
-        >PUT</a> requests, with an ID parameter and a body payload (the updated data). Prisma
-        finds the corresponding document in the database and replaces it with the new data.</li>
-      <li>An Express endpoint listens for HTTP <a
-          href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PUT"
-        >DELETE</a> requests, with an ID paramater passed along. Prisma finds the corresponding document and
-        removes it from the database.</li>
+      <li><strong>Custom Upload UI:</strong> The default file input has been enhanced with a custom interface that
+        supports both browsing and drag-and-drop functionality (on devices with a mouse).</li>
+      <li><strong>BusBoy:</strong> On the backend, the <a href="https://www.npmjs.com/package/busboy">BusBoy</a>
+        library parses multipart form data to handle file uploads.</li>
+      <li><strong>Sharp:</strong> The <a href="https://sharp.pixelplumbing.com/">Sharp</a> library resizes uploaded
+        images to a predictable size, ensuring performance and preventing system abuse.</li>
+      <li><strong>Vercel Blob Storage:</strong> Processed images are stored in the cloud, generating a public URL
+        which is then saved to MongoDB as a string reference.</li>
     </ol>
     </p>
     <p>
-      To support these new operations on the frontend, we have adjusted the form behaviour. When editing an item, the
-      ID of the item is stored in a hidden input field. This allows us to track which item is being edited, and send
-      the correct ID to the backend when submitting updates. We also use the ID in the display template, so that the
-      Edit and Delete buttons can function correctly, and so that we can identify which item to remove when deleting.
+      The application maintains full CRUD functionality. When editing an item, the ID is stored in a hidden input field
+      to track which record is being modified. Image URLs are also stored in a hidden field, allowing the system to
+      manage both text data and image references seamlessly.
     </p>
 
     <h3>Learning Prompts</h3>
-    <p>Can you add a connection string to the NodeJS environment (e.g. .env file) for your own MongoDB Atlas Cluster?
-    </p>
-    <p>Use MongoDB Compass to verify that your data collection form is working. </p>
-    <p>Try out all CRUD operations: Create a new cat, Edit an existing cat by clicking the Edit button, and Delete a cat
-      you no longer need.</p>
-    <p>Explore the API endpoints in your browser: visit /data to see all cats in JSON format, or try /search?terms=Sofia
-      to search for specific cats.</p>
+    <p>Can you create a system map to describe the architecture of this web app?</p>
+    <p>Having added an image upload capability, what new use cases emerge?</p>
+    <p>Try uploading an image: drag and drop a photo, or click Browse to select one. Notice how it gets resized and
+      stored in the cloud.</p>
+    <p>Explore how the form handles both text fields and file uploads together in a single submission.</p>
   </section>
 
   <footer>
