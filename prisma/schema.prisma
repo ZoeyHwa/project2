@@ -28,5 +28,4 @@ model cats {
   isAdopted      Boolean?
   food           String?
   imageUrl       String?
-  imagePath      String?
 }

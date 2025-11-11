@@ -1,29 +1,27 @@
-# Managing Data
+# Uploading Images
 
-## CRUD: A Full Data Lifecycle
+## Processing Files and Storing in Blob Storage
 
-Previously we explored approaches to [Publishing Data](https://github.com/ixd-system-design/API-Endpoints-for-Publishing-and-Searching) and [Collecting Data](https://github.com/ixd-system-design/Collecting-Data) by means of API Endpoints (backend) and HTML forms (frontend). Having thus addressed the first two letters of [CRUD](https://developer.mozilla.org/en-US/docs/Glossary/CRUD) ("Create" and "Read"), let's now implement the last two letters as well ("Update" and "Delete"). This will allow us to manage the full lifecycle of data records in our database.
+Building on [prior explorations with CRUD](https://github.com/ixd-system-design/Managing-Data), this demo adds functionality for photo uploads. Uploaded image files are resized to fit a defined size, and then stored using [Vercel Blob Storage](https://vercel.com/docs/vercel-blob). This results in a URL which we store in MongoDB as an ordinary string. 
 
-In order to operate on existing documents, we need to identify them by ID. The following two endpoints will assume that we pass along the ID of the item to be updated or deleted:
+## User Interface
+The default UI for uploads has been hidden; we use a custom UI inside the input label instead. Drag-and-drop has been implemented, but only where this feature makes sense (A pointer media query prevents it on mobile). 
 
-1. An Express endpoint listens for HTTP [PUT](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/PUT) requests, with an ID parameter and a body payload (the updated data). Prisma finds the corresponding document in the database and replaces it with the new data.
-2. An Express endpoint listens for HTTP [DELETE](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Methods/DELETE) requests, with an ID parameter passed along. Prisma finds the corresponding document and removes it from the database.
+## Libraries
+On the backend, the [BusBoy](https://www.npmjs.com/package/busboy) library handles file uploads efficiently. We also use the [Sharp](https://sharp.pixelplumbing.com/) library to scale images to a predictable and performant size.
 
-To support these new operations on the frontend, we have adjusted the form behaviour. When editing an item, the ID of the item is stored in a hidden input field. This allows us to track which item is being edited, and send the correct ID to the backend when submitting updates. We also use the ID in the display template, so that the Edit and Delete buttons can function correctly, and so that we can identify which item to remove when deleting.
+## Setup Blob Storage 
+Prior to local development, deploy your project to Vercel, and setup Blob storage. When deploying to vercel, add an environment variable `DATABASE_URL` containing your MongoDB connection string. After the first deployment, setup the Blob Storage and redeploy.
 
-# API Endpoints
 
-This [NodeJS](https://nodejs.org/en) App uses [Express](https://www.npmjs.com/package/express) and [Prisma](https://www.npmjs.com/package/prisma) to create API endpoints for full CRUD operations: Creating (POST), Reading (GET), Updating (PUT), and Deleting (DELETE). It assumes a [MongoDB](https://www.mongodb.com/products/platform/atlas-database) data collection.
-
-## Setup
-
+# Local Develoment
 - Run `npm install` to install express and prisma.
 - Add your MongoDB connection string to the `.env` file (see `.env.example` for an example).
 - Be sure to include the name of the Database you want to connect to. For example, if your connection string is `mongodb+srv://username:password@cluster.abc.mongodb.net/MyDatabase`, you would change `MyDatabase` to any database name of your choosing.
 - If you point to an existing database, you may wish to introspect the schema using the command `npx prisma db pull --force`.
 - Alternately, you can start with a blank database, by pointing the connection string to a Database that doesn't exist yet (Mongo creates it automatically as soon as you refer to it).
 - Run `npx prisma generate` to create the Prisma Client based on `schema.prisma`.
-- Run `npm run start` to lauch the app.
+- Run `npm start` to lauch the app.
 
 ## Learning Prompts
 

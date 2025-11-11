@@ -2,9 +2,11 @@ let readyStatus = document.querySelector('#readyStatus')
 let notReadyStatus = document.querySelector('#notReadyStatus')
 let myForm = document.querySelector('#myForm')
 let contentArea = document.querySelector('#contentArea')
-let formPopover = document.querySelector('#formPopover')
+let formDialog = document.querySelector('#formDialog')
 let createButton = document.querySelector('#createButton')
-let formHeading = document.querySelector('#formPopover h2')
+let saveButton = document.querySelector('#saveButton')
+let cancelButton = document.querySelector('#cancelButton')
+let formHeading = document.querySelector('.modal-header h2')
 
 // Get form data and process each type of input
 // Prepare the data as JSON with a proper set of types
@@ -44,7 +46,23 @@ myForm.addEventListener('submit', async event => {
     const data = getFormData()
     await saveItem(data)
     myForm.reset()
-    formPopover.hidePopover()
+    formDialog.close()
+})
+
+// Open dialog when create button clicked
+createButton.addEventListener('click', () => {
+    myForm.reset()
+    formDialog.showModal()
+})
+
+// Close dialog when cancel button clicked
+cancelButton.addEventListener('click', () => {
+    formDialog.close()
+})
+
+// Save button submits the form
+saveButton.addEventListener('click', () => {
+    myForm.requestSubmit()
 })
 
 
@@ -125,8 +143,8 @@ const editItem = (data) => {
     // Update the heading to indicate edit mode
     formHeading.textContent = '🐈 Edit Cat'
 
-    // Show the popover
-    formPopover.showPopover()
+    // Show the dialog
+    formDialog.showModal()
 }
 
 // Delete item
@@ -179,12 +197,19 @@ const renderItem = (item) => {
     div.setAttribute('data-id', item.id)
 
     // Add image display if available
-    const imageHTML = item.imageUrl
-        ? `<img src="${item.imageUrl}" alt="${item.name}" class="cat-image" />`
-        : ''
+    const imageHTML = item.imageUrl ?
+        `<div class="item-image-area" style="background: url(${item.imageUrl});">
+            <div class="item-image-container">
+                <img src="${item.imageUrl}" alt="${item.name}" class="item-image" />
+            </div>
+        </div>`
+        :
+        ''
 
     const template = /*html*/`
-    ${imageHTML}
+    
+        ${imageHTML}
+    
     <div class="item-heading">
         <h3> ${item.name} </h3>
         <div class="microchip-info">

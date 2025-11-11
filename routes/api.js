@@ -89,23 +89,35 @@ router.get('/search', async (req, res) => {
 // respond by updating a particular record in the database
 // This is the 'U' of CRUD
 // After updating the database we send the updated record back to the frontend.
-router.put('/data/:id', async (req, res) => {
-    try {
-        // Remove the id from the request body if it exists
-        // The id should not be in the data payload for updates
-        const { id, ...updateData } = req.body
 
-        // Prisma update returns the updated version by default
-        const updated = await prisma[model].update({
-            where: { id: req.params.id },
-            data: updateData
-        })
-        res.send(updated)
-    } catch (err) {
-        console.error('PUT /data/:id error:', err)
-        res.status(500).send({ error: 'Failed to update record', details: err.message || err })
+
+router.put('/data/:id', async (req, res) => {
+    const { id, _id, ...requestBody } = req.body || {};
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            const updated = await prisma[model].update({
+                where: { id: req.params.id },
+                data: requestBody,
+            });
+            console.log(`PUT /data/${req.params.id} successful on attempt ${attempt}:`, updated);
+
+            return res.send(updated);
+        } catch (err) {
+
+            if (err.code === 'P2034') {
+                if (attempt < 2) {
+                    await new Promise(r => setTimeout(r, 100))
+                    continue;
+                }
+                return res.status(409).send({ error: 'Write conflict, please retry' });
+            }
+
+            console.error('PUT /data/:id error:', err);
+            return res.status(500).send({ error: 'Failed to update record' });
+        }
     }
-})
+});
 
 // ----- DELETE -----
 // Listen for DELETE requests

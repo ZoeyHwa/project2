@@ -53,7 +53,7 @@ const upload = async (theFile) => {
 
         // Store URL in hidden form field
         myForm.elements['imageUrl'].value = uploadDetails.url
-        myForm.elements['imagePath'].value = uploadDetails.pathname || ''
+
 
     } catch (err) {
         console.error('Upload error:', err)
@@ -67,6 +67,10 @@ const upload = async (theFile) => {
 fileInput.addEventListener('change', (event) => {
     const file = event.currentTarget.files[0]
     if (file) upload(file)
+})
+// CLICK ANYWHERE ON UPLOAD AREA
+uploadArea.addEventListener('click', (event) => {
+    fileInput.click()
 })
 
 // DRAG AND DROP (for devices with fine pointer control)
