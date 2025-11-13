@@ -15,6 +15,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const updateButtonVisibility = () => {
     const imageUrl = myForm.elements['imageUrl'].value
     const hasImage = imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')
+    const hasFinePointer = window.matchMedia('(pointer: fine)').matches
 
     if (hasImage) {
         removeImageButton.style.display = 'block'
@@ -23,7 +24,8 @@ const updateButtonVisibility = () => {
     } else {
         removeImageButton.style.display = 'none'
         browseButton.textContent = 'Browse'
-        uploadInstructions.style.display = 'block'
+        // Only show upload instructions on devices with fine pointer control (mouse)
+        uploadInstructions.style.display = hasFinePointer ? 'block' : 'none'
     }
 }
 
@@ -193,6 +195,10 @@ if (window.matchMedia('(pointer: fine)').matches) {
 
 // Make updateButtonVisibility available globally
 window.updateButtonVisibility = updateButtonVisibility
+
+// Initialize upload instructions visibility based on pointer capability
+// Hide by default, only show on devices with fine pointer control
+uploadInstructions.style.display = window.matchMedia('(pointer: fine)').matches ? 'block' : 'none'
 
 // Initialize button visibility on page load
 updateButtonVisibility()
