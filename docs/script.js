@@ -7,6 +7,8 @@ const createButton = document.getElementById('createButton');
 const refreshButton = document.getElementById('refreshButton');
 const photoForm = document.getElementById('photoForm');
 
+const API_BASE = window.API_CONFIG?.baseUrl || '';
+
 // Format date
 function formatDate(dateString) {
     if (!dateString) return 'No date';
@@ -32,11 +34,11 @@ function getFormData() {
 
 // Save photo
 async function savePhoto(data) {
-    const endpoint = data.id ? `/data/${data.id}` : '/data';
+    const endpoint = data.id ? `/api/data/${data.id}` : '/api/data';
     const method = data.id ? 'PUT' : 'POST';
     
     try {
-        const response = await fetch(endpoint, {
+        const response = await fetch(`${API_BASE}${endpoint}`, {
             method: method,
             headers: {
                 'Content-Type': 'application/json'
@@ -68,7 +70,7 @@ async function deletePhoto(id) {
     if (!confirm('Delete this photo?')) return;
     
     try {
-        const response = await fetch(`/data/${id}`, {
+        const response = await fetch(`${API_BASE}/api/data/${id}`, {
             method: 'DELETE'
         });
         
@@ -132,7 +134,7 @@ async function loadPhotos() {
         readyStatus.style.display = 'block';
         notReadyStatus.style.display = 'none';
         
-        const response = await fetch('/data');
+        const response = await fetch(`${API_BASE}/api/data`);
         
         if (response.ok) {
             const photos = await response.json();
