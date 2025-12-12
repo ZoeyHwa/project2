@@ -9,6 +9,8 @@ const modal = document.getElementById('modal');
 const closeModal = document.getElementById('closeModal');
 const cancelButton = document.getElementById('cancelButton');
 
+const UPLOAD_API = window.API_CONFIG?.baseUrl || '';
+
 // Show notice
 function showNotice(message, type = 'error') {
     noticeArea.textContent = message;
@@ -53,7 +55,7 @@ async function uploadFile(file) {
     formData.append('image', file);
     
     try {
-        const response = await fetch('/api/upload', {
+        const response = await fetch(`${UPLOAD_API}/api/upload`, {
             method: 'POST',
             body: formData
         });
@@ -85,7 +87,7 @@ async function removeImage() {
     
     if (imageUrl) {
         try {
-            await fetch('/api/image', {
+            await fetch(`${UPLOAD_API}/api/image`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
