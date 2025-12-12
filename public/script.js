@@ -1,338 +1,185 @@
-let readyStatus = document.querySelector('#readyStatus')
-let notReadyStatus = document.querySelector('#notReadyStatus')
-let myForm = document.querySelector('#myForm')
-let contentArea = document.querySelector('#contentArea')
-let formDialog = document.querySelector('#formDialog')
-let createButton = document.querySelector('#createButton')
-let saveButton = document.querySelector('#saveButton')
-let cancelButton = document.querySelector('#cancelButton')
-let formHeading = document.querySelector('.modal-header h2')
+// Main application
+const contentArea = document.getElementById('contentArea');
+const noPhotos = document.getElementById('noPhotos');
+const readyStatus = document.getElementById('readyStatus');
+const notReadyStatus = document.getElementById('notReadyStatus');
+const createButton = document.getElementById('createButton');
+const refreshButton = document.getElementById('refreshButton');
+const photoForm = document.getElementById('photoForm');
 
-// Get form data and process each type of input
-// Prepare the data as JSON with a proper set of types
-// e.g. Booleans, Numbers, Dates
-const getFormData = () => {
-    // FormData gives a baseline representation of the form
-    // with all fields represented as strings
-    const formData = new FormData(myForm)
-    const json = Object.fromEntries(formData)
-
-    // Handle checkboxes, dates, and numbers
-    myForm.querySelectorAll('input').forEach(el => {
-        const value = json[el.name]
-        const isEmpty = !value || value.trim() === ''
-
-        // Represent checkboxes as a Boolean value (true/false)
-        if (el.type === 'checkbox') {
-            json[el.name] = el.checked
-        }
-        // Represent number and range inputs as actual numbers
-        else if (el.type === 'number' || el.type === 'range') {
-            json[el.name] = isEmpty ? null : Number(value)
-        }
-        // Represent all date inputs in ISO-8601 DateTime format
-        else if (el.type === 'date') {
-            json[el.name] = isEmpty ? null : new Date(value).toISOString()
-        }
-    })
-    return json
+// Format date
+function formatDate(dateString) {
+    if (!dateString) return 'No date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
 }
 
-
-// listen for form submissions  
-myForm.addEventListener('submit', async event => {
-    // prevent the page from reloading when the form is submitted.
-    event.preventDefault()
-    const data = getFormData()
-    await saveItem(data)
-    myForm.reset()
-    formDialog.close()
-})
-
-// Open dialog when create button clicked
-createButton.addEventListener('click', () => {
-    myForm.reset()
-    formDialog.showModal()
-})
-
-// Close dialog when cancel button clicked
-cancelButton.addEventListener('click', () => {
-    formDialog.close()
-})
-
-// Save button submits the form
-saveButton.addEventListener('click', () => {
-    myForm.requestSubmit()
-})
-
-
-// Save item (Create or Update)
-const saveItem = async (data) => {
-    console.log('Saving:', data)
-
-    // Determine if this is an update or create
-    const endpoint = data.id ? `/data/${data.id}` : '/data'
-    const method = data.id ? "PUT" : "POST"
-
-    const options = {
-        method: method,
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
+// Get form data
+function getFormData() {
+    const formData = new FormData(photoForm);
+    const data = Object.fromEntries(formData);
+    
+    if (data.dateTaken) {
+        data.dateTaken = new Date(data.dateTaken).toISOString();
     }
+    
+    return data;
+}
 
+// Save photo
+async function savePhoto(data) {
+    const endpoint = data.id ? `/data/${data.id}` : '/data';
+    const method = data.id ? 'PUT' : 'POST';
+    
     try {
-        const response = await fetch(endpoint, options)
-
+        const response = await fetch(endpoint, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
         if (!response.ok) {
-            try {
-                const errorData = await response.json()
-                console.error('Error:', errorData)
-                alert(errorData.error || response.statusText)
-            }
-            catch (err) {
-                console.error(response.statusText)
-                alert('Failed to save: ' + response.statusText)
-            }
-            return
+            const error = await response.json();
+            alert(error.error || 'Save failed');
+            return;
         }
-
-        const result = await response.json()
-        console.log('Saved:', result)
-
-
-        // Refresh the data list
-        getData()
-    }
-    catch (err) {
-        console.error('Save error:', err)
-        alert('An error occurred while saving')
+        
+        const result = await response.json();
+        console.log('Saved:', result);
+        
+        // Close modal and reload
+        window.upload.closeModalFunc();
+        loadPhotos();
+        
+    } catch (error) {
+        console.error('Save error:', error);
+        alert('Save failed');
     }
 }
 
-
-// Edit item - populate form with existing data
-const editItem = (data) => {
-    console.log('Editing:', data)
-
-    // Populate the form with data to be edited
-    Object.keys(data).forEach(field => {
-        const element = myForm.elements[field]
-        if (element) {
-            if (element.type === 'checkbox') {
-                element.checked = data[field]
-            } else if (element.type === 'date') {
-                // Extract yyyy-mm-dd from ISO date string (avoids timezone issues)
-                element.value = data[field] ? data[field].substring(0, 10) : ''
-            } else {
-                element.value = data[field]
-            }
-        }
-    })
-
-    // Update image preview if image exists
-    const imagePreview = document.querySelector('#imagePreview')
-    if (data.imageUrl) {
-        imagePreview.setAttribute('src', data.imageUrl)
-    } else {
-        imagePreview.setAttribute('src', 'assets/photo.svg')
-    }
-
-    // Update remove button visibility (requires upload.js to be loaded)
-    if (typeof updateButtonVisibility === 'function') {
-        updateButtonVisibility()
-    }
-
-    // Update the heading to indicate edit mode
-    formHeading.textContent = '🐈 Edit Cat'
-
-    // Show the dialog
-    formDialog.showModal()
-}
-
-// Delete item
-const deleteItem = async (id) => {
-    if (!confirm('Are you sure you want to delete this cat?')) {
-        return
-    }
-
-    const endpoint = `/data/${id}`
-    const options = { method: "DELETE" }
-
+// Delete photo
+async function deletePhoto(id) {
+    if (!confirm('Delete this photo?')) return;
+    
     try {
-        const response = await fetch(endpoint, options)
-
+        const response = await fetch(`/data/${id}`, {
+            method: 'DELETE'
+        });
+        
         if (response.ok) {
-            const result = await response.json()
-            console.log('Deleted:', result)
-            // Refresh the data list
-            getData()
-        }
-        else {
-            const errorData = await response.json()
-            alert(errorData.error || 'Failed to delete item')
+            const result = await response.json();
+            console.log('Deleted:', result);
+            loadPhotos();
+        } else {
+            const error = await response.json();
+            alert(error.error || 'Delete failed');
         }
     } catch (error) {
-        console.error('Delete error:', error)
-        alert('An error occurred while deleting')
+        console.error('Delete error:', error);
+        alert('Delete failed');
     }
 }
 
-
-const calendarWidget = (date) => {
-    if (!date) return ''
-    const month = new Date(date).toLocaleString("en-CA", { month: 'short', timeZone: "UTC" })
-    const day = new Date(date).toLocaleString("en-CA", { day: '2-digit', timeZone: "UTC" })
-    const year = new Date(date).toLocaleString("en-CA", { year: 'numeric', timeZone: "UTC" })
-    return ` <div class="calendar">
-                <div class="born"><img src="./assets/birthday.svg" /></div>
-                <div class="month">${month}</div>
-                <div class="day">${day}</div> 
-                <div class="year">${year}</div>
-            </div>`
-
-}
-
-// Render a single item
-const renderItem = (item) => {
-    const div = document.createElement('div')
-    div.classList.add('item-card')
-    div.setAttribute('data-id', item.id)
-
-    // Add image display if available
-    const imageHTML = item.imageUrl ?
-        `<div class="item-image-area" style="background: url(${item.imageUrl});">
-            <div class="item-image-container">
-                <img src="${item.imageUrl}" alt="${item.name}" class="item-image" />
-            </div>
-        </div>`
-        :
-        ''
-
-    const template = /*html*/`
+// Render photo card
+function renderPhotoCard(photo) {
+    const div = document.createElement('div');
+    div.className = 'photo-card';
     
-        ${imageHTML}
-    
-    <div class="item-heading">
-        <h3> ${item.name} </h3>
-        <div class="microchip-info">
-            <img src="./assets/chip.svg" /> ${item.microchip || '<i>???</i>'} 
-        </div>  
-    </div>
-    <div class="item-info"> 
-        <div class="item-icon" style="
-            background: linear-gradient(135deg, 
-            ${item.primaryColor} 0%, 
-            ${item.primaryColor} 40%, 
-            ${item.secondaryColor} 60%, 
-            ${item.secondaryColor} 100%); 
-        ">
-        </div> 
-        <div class="stats">
-            <div class="stat">
-                <span>Playfulness</span>
-                <meter max="10" min="0" value="${item.playfulness || 0}"></meter> 
+    const html = `
+        ${photo.imageUrl ? `
+            <img src="${photo.imageUrl}" alt="${photo.title || 'Photo'}">
+        ` : ''}
+        <div class="photo-content">
+            <h3 class="photo-title">${photo.title || 'Untitled'}</h3>
+            <p class="photo-date">${formatDate(photo.dateTaken)}</p>
+            ${photo.description ? `
+                <p class="photo-description">${photo.description}</p>
+            ` : ''}
+            <div class="photo-actions">
+                <button class="action-btn edit-btn">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="action-btn delete-btn delete">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
             </div>
-            <div class="stat">
-                <span>Appetite</span>
-                <meter max="10" min="0" value="${item.appetite || 0}"></meter> 
-            </div>
-        </div> 
-            
-         ${calendarWidget(item.birthDate)}
-    </div>
-        
-    <div class="item-info">  
-        <section class="breed" style="${item.breed ? '' : 'display:none;'}">  
-            <img src="./assets/ribbon.svg" />  ${item.breed}
-        </section>
-        <section class="food" style="${item.food ? '' : 'display:none;'}">
-             <img src="./assets/${item.food}.svg" /> <span>${item.food} food</span>
-        </section> 
-        <section class="adoption">
-            <img src="./assets/${item.isAdopted ? 'adopted' : 'paw'}.svg" />
-            ${item.isAdopted ? 'Adopted' : 'Available'}
-        </section> 
-    </div>
-
-    <section class="description" style="${item.description ? '' : 'display:none;'}">  
-        <p>${item.description}</p>
-    </section>
-
-        
-           
-        <div class="item-actions">
-            <button class="edit-btn">Edit</button>
-            <button class="delete-btn">Delete</button>
         </div>
-    `
-    div.innerHTML = DOMPurify.sanitize(template);
-
-    // Add event listeners to buttons
-    div.querySelector('.edit-btn').addEventListener('click', () => editItem(item))
-    div.querySelector('.delete-btn').addEventListener('click', () => deleteItem(item.id))
-
-    return div
+    `;
+    
+    div.innerHTML = html;
+    
+    // Add event listeners
+    div.querySelector('.edit-btn').addEventListener('click', () => {
+        window.upload.openModalForEdit(photo);
+    });
+    
+    div.querySelector('.delete-btn').addEventListener('click', () => {
+        deletePhoto(photo.id);
+    });
+    
+    return div;
 }
 
-// fetch items from API endpoint and populate the content div
-const getData = async () => {
+// Load photos
+async function loadPhotos() {
     try {
-        const response = await fetch('/data')
-
+        readyStatus.style.display = 'block';
+        notReadyStatus.style.display = 'none';
+        
+        const response = await fetch('/data');
+        
         if (response.ok) {
-            readyStatus.style.display = 'block'
-            notReadyStatus.style.display = 'none'
-
-            const data = await response.json()
-            console.log('Fetched data:', data)
-
-            if (data.length == 0) {
-                contentArea.innerHTML = '<p><i>No data found in the database.</i></p>'
-                return
+            const photos = await response.json();
+            
+            if (photos.length === 0) {
+                noPhotos.style.display = 'block';
+                contentArea.innerHTML = '';
+            } else {
+                noPhotos.style.display = 'none';
+                contentArea.innerHTML = '';
+                
+                photos.forEach(photo => {
+                    const card = renderPhotoCard(photo);
+                    contentArea.appendChild(card);
+                });
             }
-            else {
-                contentArea.innerHTML = ''
-                data.forEach(item => {
-                    const itemDiv = renderItem(item)
-                    contentArea.appendChild(itemDiv)
-                })
-            }
-        }
-        else {
-            // If the request failed, show the "not ready" status
-            // to inform users that there may be a database connection issue
-            notReadyStatus.style.display = 'block'
-            readyStatus.style.display = 'none'
-            createButton.style.display = 'none'
-            contentArea.style.display = 'none'
+            
+            readyStatus.style.display = 'none';
+        } else {
+            readyStatus.style.display = 'none';
+            notReadyStatus.style.display = 'block';
         }
     } catch (error) {
-        console.error('Error fetching data:', error)
-        notReadyStatus.style.display = 'block'
+        console.error('Load error:', error);
+        readyStatus.style.display = 'none';
+        notReadyStatus.style.display = 'block';
     }
 }
 
-// Revert to the default form title on reset
-myForm.addEventListener('reset', () => {
-    formHeading.textContent = '🐈 Share a Cat'
-    // Reset image preview
-    const imagePreview = document.querySelector('#imagePreview')
-    if (imagePreview) {
-        imagePreview.setAttribute('src', 'assets/photo.svg')
-    }
-    // Update remove button visibility
-    if (typeof updateButtonVisibility === 'function') {
-        updateButtonVisibility()
-    }
-})
+// Initialize
+function init() {
+    // Event listeners
+    createButton.addEventListener('click', () => {
+        window.upload.openModalForNew();
+    });
+    
+    refreshButton.addEventListener('click', loadPhotos);
+    
+    photoForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = getFormData();
+        savePhoto(data);
+    });
+    
+    // Load initial data
+    loadPhotos();
+}
 
-// Reset the form when the create button is clicked. 
-createButton.addEventListener('click', () => {
-    myForm.reset()
-})
-
-// Load initial data
-getData()
+// Start when page loads
+document.addEventListener('DOMContentLoaded', init);

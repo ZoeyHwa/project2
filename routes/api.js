@@ -1,21 +1,16 @@
-// Below we will use the Express Router to define a series of API endpoints.
-// Express will listen for API requests and respond accordingly
+// routes/api.js
 import express from 'express'
 const router = express.Router()
 
-// Set this to match the model name in your Prisma schema
-const model = 'cats'
+// 使用 photos 模型而不是 cats
+const model = 'photo'  // 改為單數形式
 
-// Prisma lets NodeJS communicate with MongoDB
-// Let's import and initialize the Prisma client
-// See also: https://www.prisma.io/docs
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
-// Import del function from Vercel Blob for image cleanup
 import { del } from '@vercel/blob'
 
-// Connect to the database
+// 連接數據庫
 prisma.$connect().then(() => {
     console.log('Prisma connected to MongoDB')
 }).catch(err => {
@@ -23,12 +18,8 @@ prisma.$connect().then(() => {
 })
 
 // ----- CREATE (POST) -----
-// Create a new record for the configured model
-// This is the 'C' of CRUD
 router.post('/data', async (req, res) => {
     try {
-        // Remove the id field from request body if it exists
-        // MongoDB will auto-generate an ID for new records
         const { id, ...createData } = req.body
 
         const created = await prisma[model].create({
@@ -41,13 +32,12 @@ router.post('/data', async (req, res) => {
     }
 })
 
-
 // ----- READ (GET) list ----- 
 router.get('/data', async (req, res) => {
     try {
-        // fetch first 100 records from the database with no filter
         const result = await prisma[model].findMany({
-            take: 100
+            take: 100,
+            orderBy: { createdAt: 'desc' }
         })
         res.send(result)
     } catch (err) {
@@ -56,41 +46,7 @@ router.get('/data', async (req, res) => {
     }
 })
 
-
-
-// ----- findMany() with search ------- 
-// Accepts optional search parameter to filter by name field
-// See also: https://www.prisma.io/docs/orm/reference/prisma-client-reference#examples-7
-router.get('/search', async (req, res) => {
-    try {
-        // get search terms from query string, default to empty string
-        const searchTerms = req.query.terms || ''
-        // fetch the records from the database
-        const result = await prisma[model].findMany({
-            where: {
-                name: {
-                    contains: searchTerms,
-                    mode: 'insensitive'  // case-insensitive search
-                }
-            },
-            orderBy: { name: 'asc' },
-            take: 10
-        })
-        res.send(result)
-    } catch (err) {
-        console.error('GET /search error:', err)
-        res.status(500).send({ error: 'Search failed', details: err.message || err })
-    }
-})
-
-
 // ----- UPDATE (PUT) -----
-// Listen for PUT requests
-// respond by updating a particular record in the database
-// This is the 'U' of CRUD
-// After updating the database we send the updated record back to the frontend.
-
-
 router.put('/data/:id', async (req, res) => {
     const { id, _id, ...requestBody } = req.body || {};
 
@@ -104,7 +60,6 @@ router.put('/data/:id', async (req, res) => {
 
             return res.send(updated);
         } catch (err) {
-
             if (err.code === 'P2034') {
                 if (attempt < 2) {
                     await new Promise(r => setTimeout(r, 100))
@@ -120,13 +75,10 @@ router.put('/data/:id', async (req, res) => {
 });
 
 // ----- DELETE -----
-// Listen for DELETE requests
-// respond by deleting a particular record in the database
-// This is the 'D' of CRUD
 router.delete('/data/:id', async (req, res) => {
     try {
-        // Get the cat record first to get the image URL
-        const cat = await prisma[model].findUnique({
+        // Get the photo record first to get the image URL
+        const photo = await prisma[model].findUnique({
             where: { id: req.params.id }
         })
 
@@ -136,10 +88,10 @@ router.delete('/data/:id', async (req, res) => {
         })
 
         // Delete associated image from Vercel Blob (if exists)
-        if (cat?.imageUrl) {
+        if (photo?.imageUrl) {
             try {
-                await del(cat.imageUrl)
-                console.log('Deleted image:', cat.imageUrl)
+                await del(photo.imageUrl)
+                console.log('Deleted image:', photo.imageUrl)
             } catch (blobError) {
                 console.error('Failed to delete image:', blobError)
                 // Don't fail the whole operation if image delete fails
@@ -153,8 +105,4 @@ router.delete('/data/:id', async (req, res) => {
     }
 })
 
-
-// export the api routes for use elsewhere in our app 
-// (e.g. in index.js )
 export default router;
-

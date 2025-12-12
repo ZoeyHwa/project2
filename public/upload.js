@@ -1,204 +1,194 @@
-// Upload module for handling image uploads to Vercel Blob
+// Upload functionality
+const imagePreview = document.getElementById('imagePreview');
+const fileInput = document.getElementById('fileInput');
+const uploadArea = document.getElementById('uploadArea');
+const noticeArea = document.getElementById('noticeArea');
+const browseButton = document.getElementById('browseButton');
+const removeImageButton = document.getElementById('removeImageButton');
+const modal = document.getElementById('modal');
+const closeModal = document.getElementById('closeModal');
+const cancelButton = document.getElementById('cancelButton');
 
-const imagePreview = document.querySelector('#imagePreview')
-const fileInput = document.querySelector('#fileInput')
-const uploadArea = document.querySelector('#uploadArea')
-const noticeArea = document.querySelector('#noticeArea')
-const myForm = document.querySelector('#myForm')
-const removeImageButton = document.querySelector('#removeImageButton')
-const browseButton = document.querySelector('#browseButton')
-const uploadInstructions = document.querySelector('#uploadInstructions')
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-
-// Show or hide the Browse / Replace button based on whether an image is uploaded
-const updateButtonVisibility = () => {
-    const imageUrl = myForm.elements['imageUrl'].value
-    const hasImage = imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')
-    const hasFinePointer = window.matchMedia('(pointer: fine)').matches
-
-    if (hasImage) {
-        removeImageButton.style.display = 'block'
-        browseButton.textContent = 'Replace'
-        uploadInstructions.style.display = 'none'
-    } else {
-        removeImageButton.style.display = 'none'
-        browseButton.textContent = 'Browse'
-        // Only show upload instructions on devices with fine pointer control (mouse)
-        uploadInstructions.style.display = hasFinePointer ? 'block' : 'none'
+// Show notice
+function showNotice(message, type = 'error') {
+    noticeArea.textContent = message;
+    noticeArea.className = 'notice ' + type;
+    noticeArea.style.display = 'block';
+    
+    if (type === 'success') {
+        setTimeout(() => {
+            noticeArea.style.display = 'none';
+        }, 3000);
     }
 }
 
-// Remove the uploaded image
-const removeImage = async () => {
-    const imageUrl = myForm.elements['imageUrl'].value
-
-    // If there's a valid image URL, delete it from Vercel Blob
-    if (imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')) {
-        try {
-            const response = await fetch('/api/image', {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ url: imageUrl })
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json()
-                console.error('Delete error:', errorData)
-                noticeArea.style.display = 'block'
-                noticeArea.textContent = errorData.error || 'Failed to delete image'
-                return
-            }
-
-            console.log('Image deleted successfully')
-        } catch (err) {
-            console.error('Delete error:', err)
-            noticeArea.style.display = 'block'
-            noticeArea.textContent = 'An error occurred while deleting the image'
-            return
-        }
-    }
-
-    // Reset the form field and preview
-    myForm.elements['imageUrl'].value = ''
-    imagePreview.setAttribute('src', 'assets/photo.svg')
-    fileInput.value = ''
-    noticeArea.style.display = 'none'
-
-    // Update button visibility
-    updateButtonVisibility()
+// Update buttons
+function updateButtons() {
+    const hasImage = document.getElementById('imageUrl').value;
+    removeImageButton.style.display = hasImage ? 'flex' : 'none';
+    browseButton.textContent = hasImage ? 'Replace' : 'Browse';
 }
 
-// Upload a file to the server
-const upload = async (theFile) => {
-    // Validate file size
-    if (theFile.size > MAX_FILE_SIZE) {
-        alert('Maximum file size is 10MB')
-        return
+// Upload file
+async function uploadFile(file) {
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+        showNotice('File too large. Maximum size is 10MB.');
+        return;
     }
-
-    // Validate file type
-    if (!theFile.type.startsWith('image/')) {
-        noticeArea.style.display = 'block'
-        noticeArea.textContent = 'Only image files are supported.'
-        return
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+        showNotice('Only image files are allowed.');
+        return;
     }
-
-    // Show loading state
-    imagePreview.setAttribute('src', 'assets/load.svg')
-    noticeArea.style.display = 'none'
-
-    // Prepare upload 
-    // i.e. construct a "multipart/form-data" request 
-    // NOTE:  "multipart" implies that the request body may contain
-    // both ordinary data and binary file data (e.g. images)
-    // See also: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects#sending_files_using_a_formdata_object
-
-    const formData = new FormData()
-    formData.append('image', theFile)
-
+    
+    // Show loading
+    imagePreview.style.display = 'block';
+    imagePreview.src = '';
+    noticeArea.style.display = 'none';
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('image', file);
+    
     try {
-
-        // Note: when the fetch reques body includes form data as below,
-        // the browser will automatically add the correct
-        // "Content-Type: multipart/form-data" header 
-        // so that the server knows how to parse it 
-
         const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData
-        })
-
-
+        });
+        
         if (!response.ok) {
-            const errorData = await response.json()
-            noticeArea.style.display = 'block'
-            noticeArea.textContent = errorData.error || 'Upload failed'
-            imagePreview.setAttribute('src', 'assets/photo.svg')
-            return
+            const error = await response.json();
+            showNotice(error.error || 'Upload failed');
+            return;
         }
-
-        const uploadDetails = await response.json()
-        console.log('Upload successful:', uploadDetails)
-
-        // Update preview with Vercel Blob URL
-        imagePreview.setAttribute('src', uploadDetails.url)
-
-        // Store URL in hidden form field
-        myForm.elements['imageUrl'].value = uploadDetails.url
-
-        // Update button visibility
-        updateButtonVisibility()
-
-    } catch (err) {
-        console.error('Upload error:', err)
-        noticeArea.style.display = 'block'
-        noticeArea.textContent = 'An error occurred during upload'
-        imagePreview.setAttribute('src', 'assets/photo.svg')
+        
+        const data = await response.json();
+        
+        // Update preview
+        imagePreview.src = data.url;
+        document.getElementById('imageUrl').value = data.url;
+        
+        updateButtons();
+        showNotice('Upload successful!', 'success');
+        
+    } catch (error) {
+        console.error('Upload error:', error);
+        showNotice('Upload failed. Please try again.');
     }
 }
 
-// Remove Image Button Click Handler
-removeImageButton.addEventListener('click', (event) => {
-    event.stopPropagation() // Prevent triggering the uploadArea click
-    removeImage()
-})
-
-// BROWSE BUTTON
-browseButton.addEventListener('click', (event) => {
-    event.stopPropagation() // Prevent triggering the uploadArea click
-    fileInput.click()
-})
-
-// FILE INPUT CHANGE
-fileInput.addEventListener('change', (event) => {
-    const file = event.currentTarget.files[0]
-    if (file) upload(file)
-})
-
-// CLICK ANYWHERE ON UPLOAD AREA (only when no image is uploaded)
-uploadArea.addEventListener('click', (event) => {
-    // Only trigger file input if clicking the upload area itself, not buttons
-    if (event.target === uploadArea || event.target === imagePreview) {
-        fileInput.click()
-    }
-})
-
-// DRAG AND DROP (for devices with fine pointer control)
-if (window.matchMedia('(pointer: fine)').matches) {
-    const dragAndDropEvents = {
-        dragenter: () => uploadArea.classList.add('ready'),
-        dragover: () => uploadArea.classList.add('ready'),
-        dragleave: (event) => {
-            if (!uploadArea.contains(event.relatedTarget)) {
-                uploadArea.classList.remove('ready')
-            }
-        },
-        drop: (event) => {
-            uploadArea.classList.remove('ready')
-            const file = event.dataTransfer.files[0]
-            if (file) upload(file)
+// Remove image
+async function removeImage() {
+    const imageUrl = document.getElementById('imageUrl').value;
+    
+    if (imageUrl) {
+        try {
+            await fetch('/api/image', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: imageUrl })
+            });
+        } catch (error) {
+            console.error('Delete error:', error);
         }
     }
-
-    for (const [eventName, handler] of Object.entries(dragAndDropEvents)) {
-        uploadArea.addEventListener(eventName, (e) => {
-            e.preventDefault()
-            e.stopPropagation()
-        })
-        uploadArea.addEventListener(eventName, handler)
-    }
+    
+    // Reset
+    document.getElementById('imageUrl').value = '';
+    imagePreview.src = '';
+    imagePreview.style.display = 'none';
+    fileInput.value = '';
+    noticeArea.style.display = 'none';
+    updateButtons();
 }
 
-// Make updateButtonVisibility available globally
-window.updateButtonVisibility = updateButtonVisibility
+// Open modal for new photo
+function openModalForNew() {
+    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Upload Photo';
+    document.getElementById('photoId').value = '';
+    document.getElementById('photoForm').reset();
+    document.getElementById('imageUrl').value = '';
+    imagePreview.src = '';
+    imagePreview.style.display = 'none';
+    noticeArea.style.display = 'none';
+    updateButtons();
+    modal.style.display = 'flex';
+}
 
-// Initialize upload instructions visibility based on pointer capability
-// Hide by default, only show on devices with fine pointer control
-uploadInstructions.style.display = window.matchMedia('(pointer: fine)').matches ? 'block' : 'none'
+// Open modal for editing
+function openModalForEdit(photo) {
+    document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Photo';
+    document.getElementById('photoId').value = photo.id || '';
+    document.getElementById('title').value = photo.title || '';
+    document.getElementById('description').value = photo.description || '';
+    document.getElementById('dateTaken').value = photo.dateTaken ? photo.dateTaken.substring(0, 10) : '';
+    document.getElementById('imageUrl').value = photo.imageUrl || '';
+    
+    if (photo.imageUrl) {
+        imagePreview.src = photo.imageUrl;
+        imagePreview.style.display = 'block';
+    } else {
+        imagePreview.style.display = 'none';
+    }
+    
+    noticeArea.style.display = 'none';
+    updateButtons();
+    modal.style.display = 'flex';
+}
 
-// Initialize button visibility on page load
-updateButtonVisibility()
+// Close modal
+function closeModalFunc() {
+    modal.style.display = 'none';
+}
+
+// Event listeners
+browseButton.addEventListener('click', () => {
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) uploadFile(file);
+});
+
+uploadArea.addEventListener('click', () => {
+    fileInput.click();
+});
+
+removeImageButton.addEventListener('click', removeImage);
+
+// Drag and drop
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.style.borderColor = '#3498db';
+});
+
+uploadArea.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    uploadArea.style.borderColor = '#ddd';
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.style.borderColor = '#ddd';
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+});
+
+// Modal close
+closeModal.addEventListener('click', closeModalFunc);
+cancelButton.addEventListener('click', closeModalFunc);
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModalFunc();
+});
+
+// Export functions
+window.upload = {
+    openModalForNew,
+    openModalForEdit,
+    closeModalFunc
+};
